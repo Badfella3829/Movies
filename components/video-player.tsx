@@ -141,28 +141,66 @@ export function VideoPlayer({
 
   }, [imdbId]);
 
-  // Block popup windows from streaming servers
+  // Block popup windows and 3rd party redirects from streaming servers
   useEffect(() => {
     const originalOpen = window.open;
+    const originalFocus = window.focus;
     
-    // Override window.open to block popups from ads
+    // Override window.open to block ALL popups from streaming sites
     window.open = function(...args) {
-      // Check if this is likely an ad popup (no url or suspicious patterns)
-      const url = args[0];
-      if (!url || 
-          url === 'about:blank' || 
-          url.includes('popup') || 
-          url.includes('ad') ||
-          url.includes('click') ||
-          url.includes('track')) {
-        return null;
-      }
-      return originalOpen.apply(window, args);
+      // Block all popups - streaming servers shouldn't open new windows
+      console.log('[v0] Blocked popup attempt:', args[0]);
+      return null;
     };
+
+    // Prevent focus stealing
+    window.focus = function() {
+      // Do nothing - prevent ads from stealing focus
+    };
+
+    // Block beforeunload to prevent redirect attempts
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Only allow if user initiated navigation
+      e.preventDefault();
+      return;
+    };
+
+    // Block click events that try to open new windows
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest('a');
+      if (anchor) {
+        const href = anchor.getAttribute('href');
+        const targetAttr = anchor.getAttribute('target');
+        // Block external links and _blank targets from iframe context
+        if (targetAttr === '_blank' || (href && (href.startsWith('http') && !href.includes(window.location.host)))) {
+          console.log('[v0] Blocked external link:', href);
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }
+    };
+
+    // Block any attempt to create new windows via postMessage
+    const handleMessage = (e: MessageEvent) => {
+      // Block messages that try to trigger navigation
+      if (typeof e.data === 'string' && (e.data.includes('redirect') || e.data.includes('popup') || e.data.includes('window.open'))) {
+        console.log('[v0] Blocked suspicious postMessage:', e.data);
+        return;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('click', handleClick, true);
+    window.addEventListener('message', handleMessage);
 
     // Cleanup
     return () => {
       window.open = originalOpen;
+      window.focus = originalFocus;
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('click', handleClick, true);
+      window.removeEventListener('message', handleMessage);
     };
   }, []);
 
@@ -461,7 +499,7 @@ export function VideoPlayer({
     >
       {/* Netflix-style Top Gradient Header */}
       <div 
-        className={`absolute top-0 left-0 right-0 z-20 transition-all duration-500 ${
+        className={`absolute top-0 left-0 right-0 z-30 transition-all duration-500 ${
           controlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'
         }`}
       >
@@ -760,7 +798,7 @@ export function VideoPlayer({
 
       {/* Netflix-style Bottom Controls Bar */}
       <div 
-        className={`absolute bottom-0 left-0 right-0 z-20 transition-all duration-500 ${
+        className={`absolute bottom-0 left-0 right-0 z-30 transition-all duration-500 ${
           controlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none'
         }`}
       >
@@ -948,7 +986,7 @@ export function VideoPlayer({
 
       {/* Netflix-style Loading Overlay */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-20">
           <div className="flex flex-col items-center gap-6 max-w-sm text-center px-6">
             {/* Netflix-style spinner */}
             <div className="relative">
@@ -995,27 +1033,38 @@ export function VideoPlayer({
 
       {/* Video iframe container */}
       <div className="relative w-full h-full">
-        {/* Transparent overlay to capture mouse events when controls are hidden */}
-        {!controlsVisible && (
-          <div 
-            className="absolute inset-0 z-10"
-            onMouseMove={showControls}
-            onTouchStart={showControls}
-            onClick={(e) => {
-              showControls();
-              // Allow click through after showing controls
-              e.stopPropagation();
-            }}
-          />
-        )}
+        {/* Transparent overlay to block clicks and capture mouse events */}
+        <div 
+          className={`absolute inset-0 transition-opacity duration-300 ${
+            controlsVisible ? 'z-[5] pointer-events-none' : 'z-[25] pointer-events-auto'
+          }`}
+          onMouseMove={showControls}
+          onTouchStart={showControls}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showControls();
+          }}
+        />
         
-        {/* Video iframe - no sandbox to allow streaming servers to work */}
+        {/* Click blocker overlay - always present to prevent ad clicks */}
+        <div 
+          className="absolute inset-0 z-[15] pointer-events-none"
+          style={{ 
+            // Allow pointer events only on center area for play/pause
+            clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 0)'
+          }}
+        />
+        
+        {/* Video iframe with sandbox to restrict popups */}
         <iframe
           ref={iframeRef}
           src={embedUrl}
           className="w-full h-full"
           allowFullScreen
           allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
+          referrerPolicy="no-referrer"
           onLoad={handleIframeLoad}
           onError={() => {
             // If current server fails, try next one
