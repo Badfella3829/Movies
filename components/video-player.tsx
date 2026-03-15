@@ -608,7 +608,6 @@ export function VideoPlayer({
         className="w-full h-full"
         allowFullScreen
         allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-        referrerPolicy="origin"
         onLoad={handleIframeLoad}
       />
     </div>
