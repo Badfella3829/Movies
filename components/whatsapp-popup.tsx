@@ -42,15 +42,15 @@ export function WhatsAppPopup() {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ perspective: '1200px' }}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4" style={{ perspective: '1200px' }}>
       {/* Backdrop */}
       <div 
         className={`absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-500 ${isAnimating ? 'opacity-100' : 'opacity-0'}`}
         onClick={handleClose}
       />
       
-      {/* Floating Particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Floating Particles - Hidden on mobile for performance */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none hidden sm:block">
         {[...Array(15)].map((_, i) => (
           <div
             key={i}
@@ -67,7 +67,7 @@ export function WhatsAppPopup() {
       
       {/* Modal with 3D Animation */}
       <div 
-        className={`relative bg-gradient-to-br from-[#0f1729] via-[#131d33] to-[#0a1020] border border-gray-700/50 rounded-2xl p-8 max-w-sm w-full transition-all duration-700 ease-out ${
+        className={`relative bg-gradient-to-br from-[#0f1729] via-[#131d33] to-[#0a1020] border border-gray-700/50 rounded-2xl p-6 sm:p-8 max-w-[calc(100vw-24px)] sm:max-w-sm w-full transition-all duration-700 ease-out ${
           isClosing ? 'scale-0 rotate-12 opacity-0' : ''
         }`}
         style={{
@@ -99,18 +99,18 @@ export function WhatsAppPopup() {
 
         {/* WhatsApp Icon with 3D Bounce */}
         <div 
-          className="flex justify-center mb-6"
+          className="flex justify-center mb-4 sm:mb-6"
           style={{ 
             transform: 'translateZ(50px)',
             animation: isAnimating ? 'icon-bounce 2s ease-in-out infinite' : 'none'
           }}
         >
           <div className="relative">
-            {/* Pulse rings */}
-            <div className={`absolute inset-0 w-16 h-16 bg-[#25D366] rounded-full transition-all duration-500 ${isAnimating ? 'animate-ping opacity-20' : 'opacity-0'}`} />
-            <div className={`absolute inset-0 w-16 h-16 bg-[#25D366] rounded-full transition-all duration-700 delay-200 ${isAnimating ? 'animate-ping opacity-10' : 'opacity-0'}`} style={{ animationDelay: '0.5s' }} />
+            {/* Pulse rings - hidden on mobile for performance */}
+            <div className={`absolute inset-0 w-14 h-14 sm:w-16 sm:h-16 bg-[#25D366] rounded-full transition-all duration-500 hidden sm:block ${isAnimating ? 'animate-ping opacity-20' : 'opacity-0'}`} />
+            <div className={`absolute inset-0 w-14 h-14 sm:w-16 sm:h-16 bg-[#25D366] rounded-full transition-all duration-700 delay-200 hidden sm:block ${isAnimating ? 'animate-ping opacity-10' : 'opacity-0'}`} style={{ animationDelay: '0.5s' }} />
             
-            <div className="relative w-16 h-16 bg-gradient-to-br from-[#25D366] to-[#128C7E] rounded-full flex items-center justify-center shadow-lg shadow-[#25D366]/30">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-[#25D366] to-[#128C7E] rounded-full flex items-center justify-center shadow-lg shadow-[#25D366]/30">
               <svg 
                 viewBox="0 0 24 24" 
                 className="w-9 h-9 text-white fill-current drop-shadow-lg"
@@ -123,7 +123,7 @@ export function WhatsAppPopup() {
 
         {/* Brand Name with Stagger Animation */}
         <h2 
-          className="text-center text-3xl font-bold mb-4"
+          className="text-center text-2xl sm:text-3xl font-bold mb-3 sm:mb-4"
           style={{ transform: 'translateZ(40px)' }}
         >
           <span 
@@ -142,7 +142,7 @@ export function WhatsAppPopup() {
 
         {/* Description */}
         <p 
-          className={`text-gray-300 text-center mb-6 leading-relaxed transition-all duration-500 ${isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+          className={`text-gray-300 text-center mb-5 sm:mb-6 leading-relaxed text-sm sm:text-base transition-all duration-500 ${isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
           style={{ transform: 'translateZ(30px)', transitionDelay: '400ms' }}
         >
           Join our official WhatsApp channel for the latest secret websites & tools.
@@ -151,7 +151,7 @@ export function WhatsAppPopup() {
         {/* Join Button with 3D effect */}
         <button
           onClick={handleJoin}
-          className={`w-full py-3.5 px-6 bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20bd5a] hover:to-[#0d7a6b] text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#25D366]/30 active:scale-95 ${isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+          className={`w-full py-3 sm:py-3.5 px-6 bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20bd5a] hover:to-[#0d7a6b] text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#25D366]/30 active:scale-95 text-sm sm:text-base ${isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
           style={{ 
             transform: 'translateZ(60px)', 
             transitionDelay: '500ms',
@@ -161,9 +161,9 @@ export function WhatsAppPopup() {
           Join Channel
         </button>
         
-        {/* Decorative corner accents */}
-        <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-[#25D366]/30 rounded-tl-2xl" style={{ transform: 'translateZ(20px)' }} />
-        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-[#25D366]/30 rounded-br-2xl" style={{ transform: 'translateZ(20px)' }} />
+        {/* Decorative corner accents - hidden on small mobile */}
+        <div className="absolute top-0 left-0 w-12 h-12 sm:w-16 sm:h-16 border-t-2 border-l-2 border-[#25D366]/30 rounded-tl-2xl hidden xs:block" style={{ transform: 'translateZ(20px)' }} />
+        <div className="absolute bottom-0 right-0 w-12 h-12 sm:w-16 sm:h-16 border-b-2 border-r-2 border-[#25D366]/30 rounded-br-2xl hidden xs:block" style={{ transform: 'translateZ(20px)' }} />
       </div>
       
       {/* CSS Animations */}
