@@ -307,48 +307,48 @@ export function VideoPlayer({
   return (
     <div className="fixed inset-0 z-50 bg-black">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black via-black/80 to-transparent p-4 pb-8">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-4">
+      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black via-black/80 to-transparent p-3 sm:p-4 pb-6 sm:pb-8">
+        <div className="flex items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <Button
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="text-white hover:bg-white/20 shrink-0"
+              className="text-white hover:bg-white/20 shrink-0 h-8 w-8 sm:h-10 sm:w-10"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5 sm:w-6 sm:h-6" />
             </Button>
-            <div className="min-w-0">
-              <h2 className="text-white font-semibold text-lg truncate">{title}</h2>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-white font-semibold text-sm sm:text-lg truncate max-w-[150px] sm:max-w-none">{title}</h2>
               {type === 'tv' && (
-                <p className="text-white/70 text-sm">
+                <p className="text-white/70 text-xs sm:text-sm">
                   S{currentSeason} E{currentEpisode}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Episode Navigation for TV */}
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            {/* Episode Navigation for TV - Hidden on very small screens */}
             {type === 'tv' && (
-              <div className="flex items-center gap-1">
+              <div className="hidden xs:flex items-center gap-1">
                 <Button
                   variant="secondary"
                   size="icon"
                   onClick={handlePrevEpisode}
                   disabled={!hasPrevEpisode}
-                  className="h-9 w-9"
+                  className="h-7 w-7 sm:h-9 sm:w-9"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
                 <Button
                   variant="secondary"
                   size="icon"
                   onClick={handleNextEpisode}
                   disabled={!hasNextEpisode}
-                  className="h-9 w-9"
+                  className="h-7 w-7 sm:h-9 sm:w-9"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
               </div>
             )}
@@ -356,11 +356,11 @@ export function VideoPlayer({
             {/* Server Selector */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" className="gap-2">
-                  <Server className="w-4 h-4" />
-                  <span className="max-w-[100px] truncate">{currentServer?.name}</span>
+                <Button variant="secondary" className="gap-1 sm:gap-2 h-7 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
+                  <Server className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="max-w-[60px] sm:max-w-[100px] truncate hidden xs:inline">{currentServer?.name}</span>
                   {getServerStatusIcon(currentServer?.id || '')}
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto w-56">
@@ -393,9 +393,9 @@ export function VideoPlayer({
             {type === 'tv' && totalSeasons > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" className="gap-2">
+                  <Button variant="secondary" className="gap-1 sm:gap-2 h-7 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
                     S{currentSeason}
-                    <ChevronDown className="w-4 h-4" />
+                    <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto">
@@ -421,9 +421,9 @@ export function VideoPlayer({
             {type === 'tv' && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" className="gap-2">
+                  <Button variant="secondary" className="gap-1 sm:gap-2 h-7 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
                     E{currentEpisode}
-                    <ChevronDown className="w-4 h-4" />
+                    <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto">
@@ -447,11 +447,11 @@ export function VideoPlayer({
             {/* Settings Button */}
             <Dialog open={showSettings} onOpenChange={setShowSettings}>
               <DialogTrigger asChild>
-                <Button variant="secondary" size="icon" className="h-9 w-9">
-                  <Settings className="w-4 h-4" />
+                <Button variant="secondary" size="icon" className="h-7 w-7 sm:h-9 sm:w-9">
+                  <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+              <DialogContent className="max-w-[calc(100vw-24px)] sm:max-w-md max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Server Settings</DialogTitle>
                 </DialogHeader>
@@ -575,9 +575,9 @@ export function VideoPlayer({
 
         {/* Status Message */}
         {(isLoading || isAutoFetching) && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-white/70">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            {statusMessage}
+          <div className="mt-2 sm:mt-3 flex items-center gap-2 text-xs sm:text-sm text-white/70">
+            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin shrink-0" />
+            <span className="truncate">{statusMessage}</span>
           </div>
         )}
       </div>
@@ -585,17 +585,17 @@ export function VideoPlayer({
       {/* Loading Overlay */}
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-5">
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-3 sm:gap-4 px-4">
             <div className="relative">
-              <Loader2 className="w-16 h-16 text-red-600 animate-spin" />
+              <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 text-red-600 animate-spin" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <Server className="w-6 h-6 text-white" />
+                <Server className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
               </div>
             </div>
             <div className="text-center">
-              <p className="text-white font-medium">{statusMessage}</p>
+              <p className="text-white font-medium text-sm sm:text-base">{statusMessage}</p>
               {isAutoFetching && (
-                <p className="text-white/50 text-sm mt-1">
+                <p className="text-white/50 text-xs sm:text-sm mt-1">
                   Server {currentServerIndex + 1} of {servers.length}
                 </p>
               )}
@@ -604,7 +604,7 @@ export function VideoPlayer({
               <Button 
                 variant="secondary" 
                 onClick={handleRetryAutoFetch}
-                className="gap-2"
+                className="gap-2 text-sm"
               >
                 <RefreshCw className="w-4 h-4" />
                 Try Auto-detect
@@ -618,11 +618,12 @@ export function VideoPlayer({
       {type === 'tv' && hasNextEpisode && !isLoading && (
         <Button
           variant="secondary"
-          className="absolute bottom-20 right-4 z-10 gap-2"
+          className="absolute bottom-16 sm:bottom-20 right-3 sm:right-4 z-10 gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9"
           onClick={handleNextEpisode}
         >
-          <SkipForward className="w-4 h-4" />
-          Next Episode
+          <SkipForward className="w-3 h-3 sm:w-4 sm:h-4" />
+          <span className="hidden xs:inline">Next Episode</span>
+          <span className="xs:hidden">Next</span>
         </Button>
       )}
 
