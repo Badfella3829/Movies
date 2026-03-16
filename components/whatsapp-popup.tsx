@@ -10,6 +10,12 @@ export function WhatsAppPopup() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
+      // Check if video player is open (z-50 element with fixed positioning)
+      const videoPlayer = document.querySelector('.fixed.inset-0.z-50.bg-black');
+      if (videoPlayer) {
+        // Don't show popup when video is playing
+        return;
+      }
       setIsOpen(true);
       setTimeout(() => setIsAnimating(true), 50);
     }, 2000);
