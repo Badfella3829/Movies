@@ -43,7 +43,7 @@ export function WhatsAppPopup() {
       
       {/* Modal */}
       <div 
-        className={`relative w-full max-w-[340px] sm:max-w-sm transition-all duration-700 ease-out ${
+        className={`relative w-full max-w-sm transition-all duration-700 ease-out ${
           isClosing ? 'scale-0 rotate-12 opacity-0' : ''
         }`}
         style={{
@@ -66,7 +66,7 @@ export function WhatsAppPopup() {
           <div className="h-1.5 w-full bg-gradient-to-r from-[#25D366] via-emerald-400 to-[#128C7E] animate-gradient-x" />
           
           {/* Inner content */}
-          <div className="relative px-6 pt-8 pb-6 sm:px-8 sm:pt-10 sm:pb-8">
+          <div className="relative px-8 pt-10 pb-8">
             
             {/* Close Button */}
             <button
@@ -111,7 +111,7 @@ export function WhatsAppPopup() {
 
             {/* Brand Name */}
             <h2 
-              className={`text-center text-2xl sm:text-3xl font-bold mb-2 transition-all duration-500 ${isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+              className={`text-center text-3xl font-bold mb-2 transition-all duration-500 ${isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
               style={{ transitionDelay: '300ms' }}
             >
               <span className="text-red-500">Tech</span>
