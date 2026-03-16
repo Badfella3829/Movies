@@ -8,12 +8,13 @@ export interface StreamingServer {
   priority?: number;
 }
 
-// Default streaming servers - sorted by reliability and ad-free experience
+// Default streaming servers - sorted by multi-audio support and reliability
+// Servers with multi-audio/subtitle support are prioritized first
 // Updated March 2026 with working servers
 export const DEFAULT_SERVERS: StreamingServer[] = [
   {
     id: 'vidsrc-cc',
-    name: 'VidSrc CC',
+    name: 'VidSrc CC (Multi-Audio)',
     url: 'vidsrc.cc',
     movieTemplate: 'https://vidsrc.cc/v2/embed/movie/{id}',
     tvTemplate: 'https://vidsrc.cc/v2/embed/tv/{id}/{season}/{episode}',
@@ -21,19 +22,27 @@ export const DEFAULT_SERVERS: StreamingServer[] = [
   },
   {
     id: 'embed-su',
-    name: 'Embed.su',
+    name: 'Embed.su (Multi-Audio)',
     url: 'embed.su',
     movieTemplate: 'https://embed.su/embed/movie/{id}',
     tvTemplate: 'https://embed.su/embed/tv/{id}/{season}/{episode}',
     priority: 1
   },
   {
-    id: 'vidsrc-xyz',
-    name: 'VidSrc XYZ',
-    url: 'vidsrc.xyz',
-    movieTemplate: 'https://vidsrc.xyz/embed/movie/{id}',
-    tvTemplate: 'https://vidsrc.xyz/embed/tv/{id}/{season}/{episode}',
+    id: 'multiembed',
+    name: 'MultiEmbed (Multi-Audio)',
+    url: 'multiembed.mov',
+    movieTemplate: 'https://multiembed.mov/directstream.php?video_id={id}&tmdb=1',
+    tvTemplate: 'https://multiembed.mov/directstream.php?video_id={id}&tmdb=1&s={season}&e={episode}',
     priority: 2
+  },
+  {
+    id: 'autoembed-cc',
+    name: 'AutoEmbed (Multi-Audio)',
+    url: 'player.autoembed.cc',
+    movieTemplate: 'https://player.autoembed.cc/embed/movie/{id}',
+    tvTemplate: 'https://player.autoembed.cc/embed/tv/{id}/{season}/{episode}',
+    priority: 3
   },
   {
     id: 'vidsrc-pro',
@@ -41,7 +50,15 @@ export const DEFAULT_SERVERS: StreamingServer[] = [
     url: 'vidsrc.pro',
     movieTemplate: 'https://vidsrc.pro/embed/movie/{id}',
     tvTemplate: 'https://vidsrc.pro/embed/tv/{id}/{season}/{episode}',
-    priority: 3
+    priority: 4
+  },
+  {
+    id: 'vidsrc-xyz',
+    name: 'VidSrc XYZ',
+    url: 'vidsrc.xyz',
+    movieTemplate: 'https://vidsrc.xyz/embed/movie/{id}',
+    tvTemplate: 'https://vidsrc.xyz/embed/tv/{id}/{season}/{episode}',
+    priority: 5
   },
   {
     id: '2embed',
@@ -49,15 +66,7 @@ export const DEFAULT_SERVERS: StreamingServer[] = [
     url: '2embed.cc',
     movieTemplate: 'https://www.2embed.cc/embed/{id}',
     tvTemplate: 'https://www.2embed.cc/embedtv/{id}&s={season}&e={episode}',
-    priority: 4
-  },
-  {
-    id: 'autoembed-cc',
-    name: 'AutoEmbed',
-    url: 'player.autoembed.cc',
-    movieTemplate: 'https://player.autoembed.cc/embed/movie/{id}',
-    tvTemplate: 'https://player.autoembed.cc/embed/tv/{id}/{season}/{episode}',
-    priority: 5
+    priority: 6
   },
   {
     id: 'videasy',
@@ -65,14 +74,6 @@ export const DEFAULT_SERVERS: StreamingServer[] = [
     url: 'player.videasy.net',
     movieTemplate: 'https://player.videasy.net/movie/{id}',
     tvTemplate: 'https://player.videasy.net/tv/{id}/{season}/{episode}',
-    priority: 6
-  },
-  {
-    id: 'multiembed',
-    name: 'MultiEmbed',
-    url: 'multiembed.mov',
-    movieTemplate: 'https://multiembed.mov/directstream.php?video_id={id}&tmdb=1',
-    tvTemplate: 'https://multiembed.mov/directstream.php?video_id={id}&tmdb=1&s={season}&e={episode}',
     priority: 7
   },
   {

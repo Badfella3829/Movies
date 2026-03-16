@@ -375,12 +375,18 @@ export function VideoPlayer({
     if (currentId) {
       setServerStatuses(prev => ({ ...prev, [currentId]: 'success' }));
       updateServerStats(currentId, true, loadTime);
-
     }
     
     setIsLoading(false);
     setStatusMessage(`Playing from ${currentServer?.name}`);
     setIsAutoFetching(false);
+    
+    // Auto-hide settings dialog after video loads
+    if (showSettings) {
+      setTimeout(() => {
+        setShowSettings(false);
+      }, 1500);
+    }
   };
 
   const getServerStatusIcon = (serverId: string) => {
@@ -571,6 +577,21 @@ export function VideoPlayer({
                 </DialogHeader>
                 
                 <div className="space-y-4 py-4">
+                  {/* Audio/Subtitle Tip */}
+                  <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                    <div className="flex items-start gap-2">
+                      <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-blue-400 text-xs font-bold">i</span>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-blue-400 mb-1">Audio & Subtitles</p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Use the CC/Settings icon inside the video player to change audio language and subtitles. Servers marked with (Multi-Audio) support multiple languages.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Current Server & Quick Switch */}
                   <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
                     <div className="flex items-center justify-between mb-2">
