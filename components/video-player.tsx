@@ -356,8 +356,8 @@ export function VideoPlayer({
       );
     }
 
-    // Dynamic timeout: 5s for servers with good history, 3.5s for unknown/bad servers
-    const timeout = hasGoodStats ? 5000 : 3500;
+    // Dynamic timeout: 4s for servers with good history, 3s for unknown/bad servers
+    const timeout = hasGoodStats ? 4000 : 3000;
     
     timeoutRef.current = setTimeout(() => {
       if (isLoading && isAutoFetching) {
@@ -1095,9 +1095,8 @@ export function VideoPlayer({
             src={embedUrl}
             className="w-full h-full"
             allowFullScreen
-            allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; gyroscope"
-            referrerPolicy="origin"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-top-navigation"
+            allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; gyroscope; clipboard-write"
+            referrerPolicy="no-referrer-when-downgrade"
             onLoad={handleIframeLoad}
             onError={() => {
               if (isAutoFetching) {
