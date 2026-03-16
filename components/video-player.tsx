@@ -789,16 +789,16 @@ export function VideoPlayer({
         </div>
       </div>
 
-      {/* Netflix-style Bottom Controls Bar */}
+      {/* Netflix-style Bottom Controls Bar - Only show when loading or user hovers */}
       <div 
         className={`absolute bottom-0 left-0 right-0 z-[35] transition-all duration-500 ${
-          controlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none'
+          (controlsVisible && (isLoading || isAutoFetching || type === 'tv')) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none'
         }`}
       >
-        <div className="bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-16 pb-4 sm:pt-24 sm:pb-6 px-4 sm:px-8">
+        <div className="bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-6 pb-3 sm:pt-8 sm:pb-4 px-3 sm:px-6">
           {/* Server Status Bar */}
           {(isLoading || isAutoFetching) && (
-            <div className="flex items-center gap-3 mb-4 px-2">
+            <div className="flex items-center gap-2 mb-3 px-1">
               <div className="relative w-5 h-5">
                 <div className="w-5 h-5 rounded-full border-2 border-red-600/30 border-t-red-600 animate-spin" />
               </div>
@@ -828,25 +828,25 @@ export function VideoPlayer({
             </div>
           )}
 
-          {/* Controls Row */}
-          <div className="flex items-center justify-between gap-4">
+          {/* Controls Row - Compact for mobile */}
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
             {/* Left: Episode Navigation */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               {type === 'tv' && (
                 <>
                   <button
                     onClick={handlePrevEpisode}
                     disabled={!hasPrevEpisode}
-                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all"
                   >
-                    <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                    <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </button>
                   <button
                     onClick={handleNextEpisode}
                     disabled={!hasNextEpisode}
-                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all"
                   >
-                    <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </button>
                 </>
               )}
@@ -854,14 +854,14 @@ export function VideoPlayer({
 
             {/* Center: Season/Episode Selectors */}
             {type === 'tv' && (
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 {/* Season Selector */}
                 {totalSeasons > 0 && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="px-3 sm:px-4 py-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-2">
-                        <span className="text-white text-sm sm:text-base font-medium">S{currentSeason}</span>
-                        <ChevronDown className="w-4 h-4 text-white/70" />
+                      <button className="px-2 sm:px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-1">
+                        <span className="text-white text-xs sm:text-sm font-medium">S{currentSeason}</span>
+                        <ChevronDown className="w-3 h-3 text-white/70" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="center" className="max-h-64 overflow-y-auto bg-zinc-900/95 backdrop-blur-sm border-white/10">
@@ -886,9 +886,9 @@ export function VideoPlayer({
                 {/* Episode Selector */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="px-3 sm:px-4 py-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-2">
-                      <span className="text-white text-sm sm:text-base font-medium">E{currentEpisode}</span>
-                      <ChevronDown className="w-4 h-4 text-white/70" />
+                    <button className="px-2 sm:px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-1">
+                      <span className="text-white text-xs sm:text-sm font-medium">E{currentEpisode}</span>
+                      <ChevronDown className="w-3 h-3 text-white/70" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="center" className="max-h-64 overflow-y-auto bg-zinc-900/95 backdrop-blur-sm border-white/10">
@@ -911,13 +911,13 @@ export function VideoPlayer({
             )}
 
             {/* Right: Server Selector + Next Episode */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {/* Server Selector */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="px-3 sm:px-4 py-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-2">
-                    <Server className="w-4 h-4 text-white/70" />
-                    <span className="text-white text-sm hidden sm:inline max-w-[80px] truncate">{currentServer?.name}</span>
+                  <button className="px-2 sm:px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-1">
+                    <Server className="w-3 h-3 sm:w-4 sm:h-4 text-white/70" />
+                    <span className="text-white text-xs hidden sm:inline max-w-[60px] truncate">{currentServer?.name}</span>
                     {getServerStatusIcon(currentServer?.id || '')}
                   </button>
                 </DropdownMenuTrigger>
@@ -966,10 +966,10 @@ export function VideoPlayer({
               {type === 'tv' && hasNextEpisode && (
                 <button
                   onClick={handleNextEpisode}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-md bg-white text-black font-semibold hover:bg-white/90 transition-colors"
+                  className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-md bg-white text-black text-xs sm:text-sm font-semibold hover:bg-white/90 transition-colors"
                 >
-                  <span>Next Episode</span>
-                  <SkipForward className="w-4 h-4" />
+                  <span className="hidden sm:inline">Next</span>
+                  <SkipForward className="w-3 h-3 sm:w-4 sm:h-4" />
                 </button>
               )}
             </div>
