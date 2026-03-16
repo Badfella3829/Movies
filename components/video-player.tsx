@@ -520,11 +520,15 @@ export function VideoPlayer({
 
             {/* Right: Controls */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              {/* Server Indicator (small) */}
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/10">
+              {/* Server Indicator - clickable to open settings */}
+              <button 
+                onClick={() => setShowSettings(true)}
+                className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-colors"
+              >
                 <div className={`w-2 h-2 rounded-full ${serverStatuses[currentServer?.id || ''] === 'success' ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`} />
-                <span className="text-white/80 text-xs">{currentServer?.name}</span>
-              </div>
+                <span className="text-white/80 text-[10px] sm:text-xs max-w-[60px] sm:max-w-none truncate">{currentServer?.name}</span>
+                <Settings className="w-3 h-3 text-white/50" />
+              </button>
 
               {/* Settings */}
               <Dialog open={showSettings} onOpenChange={setShowSettings}>
@@ -567,6 +571,62 @@ export function VideoPlayer({
                 </DialogHeader>
                 
                 <div className="space-y-4 py-4">
+                  {/* Current Server & Quick Switch */}
+                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-muted-foreground">Current Server</span>
+                      <button
+                        onClick={() => {
+                          handleRetryAutoFetch();
+                          setShowSettings(false);
+                        }}
+                        className="text-xs text-red-500 hover:text-red-400 flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        Auto-detect
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2.5 h-2.5 rounded-full ${serverStatuses[currentServer?.id || ''] === 'success' ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`} />
+                      <span className="font-medium text-foreground">{currentServer?.name}</span>
+                    </div>
+                  </div>
+
+                  {/* Quick Server Switch */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-yellow-500" />
+                      Quick Switch Server
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                      {servers.slice(0, 8).map((s, index) => {
+                        const stats = getServerStats()[s.id];
+                        const isActive = currentServerIndex === index;
+                        const isGood = stats && stats.successCount > stats.failCount;
+                        
+                        return (
+                          <button
+                            key={s.id}
+                            onClick={() => {
+                              handleServerChange(index);
+                              setShowSettings(false);
+                            }}
+                            className={`p-2 rounded-lg text-left text-xs transition-all ${
+                              isActive 
+                                ? 'bg-red-500/20 border-2 border-red-500' 
+                                : 'bg-muted/30 border border-border hover:border-red-500/50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5">
+                              {isGood && <Zap className="w-3 h-3 text-green-500" />}
+                              <span className="truncate font-medium">{s.name}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Summary Stats Cards */}
                   <div className="grid grid-cols-4 gap-2">
                     <div className="flex flex-col items-center p-2 rounded-lg bg-red-500/10 border border-red-500/20">
@@ -910,58 +970,8 @@ export function VideoPlayer({
               </div>
             )}
 
-            {/* Right: Server Selector + Next Episode */}
+            {/* Right: Next Episode Button only */}
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* Server Selector */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="px-2 sm:px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-1">
-                    <Server className="w-3 h-3 sm:w-4 sm:h-4 text-white/70" />
-                    <span className="text-white text-xs hidden sm:inline max-w-[60px] truncate">{currentServer?.name}</span>
-                    {getServerStatusIcon(currentServer?.id || '')}
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 max-h-80 overflow-y-auto bg-zinc-900/95 backdrop-blur-sm border-white/10">
-                  <div className="px-3 py-2 text-xs font-semibold text-white/50 border-b border-white/10">
-                    Servers - Sorted by reliability
-                  </div>
-                  {servers.map((s, index) => {
-                    const stats = getServerStats()[s.id];
-                    const total = stats ? stats.successCount + stats.failCount : 0;
-                    const successRate = total > 0 ? Math.round((stats.successCount / total) * 100) : null;
-                    const isReliable = stats && stats.successCount > stats.failCount;
-                    const isRecent = stats?.lastSuccess && (Date.now() - stats.lastSuccess) < (1000 * 60 * 60);
-                    
-                    return (
-                      <DropdownMenuItem
-                        key={s.id}
-                        onClick={() => handleServerChange(index)}
-                        className={`flex items-center justify-between py-2.5 ${currentServerIndex === index ? 'bg-red-600/20' : ''}`}
-                      >
-                        <span className="flex items-center gap-2 text-white">
-                          {isRecent && <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">LIVE</span>}
-                          {!isRecent && isReliable && <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">GOOD</span>}
-                          <span className="truncate max-w-[130px]">{s.name}</span>
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          {successRate !== null && total > 2 && (
-                            <span className={`text-xs ${successRate > 60 ? 'text-green-400' : successRate > 30 ? 'text-yellow-400' : 'text-red-400'}`}>
-                              {successRate}%
-                            </span>
-                          )}
-                          {getServerStatusIcon(s.id)}
-                        </span>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                  <DropdownMenuSeparator className="bg-white/10" />
-                  <DropdownMenuItem onClick={handleRetryAutoFetch} className="text-red-500 py-2.5">
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Auto-detect Best Server
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
               {/* Next Episode Button */}
               {type === 'tv' && hasNextEpisode && (
                 <button
