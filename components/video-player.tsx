@@ -5,7 +5,8 @@ import {
   X, ChevronDown, Server, Loader2, CheckCircle, XCircle, 
   RefreshCw, Plus, Trash2, Settings, Zap, BarChart3,
   ChevronLeft, ChevronRight, SkipForward, Crown, Medal, Award,
-  TrendingUp, TrendingDown, Clock, Activity, Wifi, CheckCircle2, AlertTriangle
+  TrendingUp, TrendingDown, Clock, Activity, Wifi, CheckCircle2, AlertTriangle,
+  Maximize, Minimize, Keyboard, List
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -80,6 +81,26 @@ export function VideoPlayer({
   const [newServerMovie, setNewServerMovie] = useState('');
   const [newServerTv, setNewServerTv] = useState('');
   const [serverStatsRefresh, setServerStatsRefresh] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showEpisodePanel, setShowEpisodePanel] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const playerRef = useRef<HTMLDivElement>(null);
+
+  // Track fullscreen changes
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  const handleFullscreen = useCallback(() => {
+    if (!playerRef.current) return;
+    if (!document.fullscreenElement) {
+      playerRef.current.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
 
   // Auto-refresh server stats when settings dialog is open
   useEffect(() => {
@@ -266,7 +287,7 @@ export function VideoPlayer({
 
   };
 
-  const handleNextEpisode = () => {
+  const handleNextEpisode = useCallback(() => {
     if (currentEpisode < totalEpisodes) {
       setCurrentEpisode(currentEpisode + 1);
     } else if (currentSeason < totalSeasons) {
@@ -275,9 +296,9 @@ export function VideoPlayer({
     }
     setIsLoading(true);
     setLoadStartTime(Date.now());
-  };
+  }, [currentEpisode, totalEpisodes, currentSeason, totalSeasons]);
 
-  const handlePrevEpisode = () => {
+  const handlePrevEpisode = useCallback(() => {
     if (currentEpisode > 1) {
       setCurrentEpisode(currentEpisode - 1);
     } else if (currentSeason > 1) {
@@ -287,7 +308,7 @@ export function VideoPlayer({
     }
     setIsLoading(true);
     setLoadStartTime(Date.now());
-  };
+  }, [currentEpisode, currentSeason, totalSeasons, episodesPerSeason]);
 
   const handleAddServer = () => {
     if (!newServerName || !newServerMovie || !newServerTv) return;
@@ -466,6 +487,8 @@ export function VideoPlayer({
     // Keyboard listener to show controls
     const handleKeyPress = (e: KeyboardEvent) => {
       showControls();
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
       // ESC to close player
       if (e.key === 'Escape') {
         onClose();
@@ -484,6 +507,28 @@ export function VideoPlayer({
       window.removeEventListener('keydown', handleKeyPress);
     };
   }, [showControls, isLoading, showSettings, controlsVisible, onClose]);
+
+  // Dedicated keyboard shortcuts (F=fullscreen, ←→=episodes)
+  useEffect(() => {
+    const handleShortcuts = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        handleFullscreen();
+      }
+      if (e.key === 'ArrowRight' && type === 'tv') {
+        e.preventDefault();
+        handleNextEpisode();
+      }
+      if (e.key === 'ArrowLeft' && type === 'tv') {
+        e.preventDefault();
+        handlePrevEpisode();
+      }
+    };
+    window.addEventListener('keydown', handleShortcuts);
+    return () => window.removeEventListener('keydown', handleShortcuts);
+  }, [handleFullscreen, handleNextEpisode, handlePrevEpisode, type]);
 
   if (servers.length === 0) {
     return (
