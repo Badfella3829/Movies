@@ -1,4 +1,7 @@
 import { notFound } from 'next/navigation';
+
+export const revalidate = 86400;
+
 import { Navbar } from '@/components/navbar';
 import { getMovieDetails, getSimilarMovies, getMovieReviews, MovieResponse } from '@/lib/tmdb';
 import { MovieRow } from '@/components/movie-row';

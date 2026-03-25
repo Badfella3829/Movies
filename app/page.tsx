@@ -1,4 +1,7 @@
 import { Suspense } from 'react';
+
+export const revalidate = 14400;
+
 import { Navbar } from '@/components/navbar';
 import { HeroBanner } from '@/components/hero-banner';
 import { MovieRow } from '@/components/movie-row';

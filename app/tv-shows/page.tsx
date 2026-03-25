@@ -1,4 +1,7 @@
 import type { Metadata } from 'next';
+
+export const revalidate = 14400;
+
 import { Navbar } from '@/components/navbar';
 import { GenreFilter } from '@/components/genre-filter';
 import { LanguageFilter } from '@/components/language-filter';
