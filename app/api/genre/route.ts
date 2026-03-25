@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type') || 'movie';
   const page = searchParams.get('page') || '1';
   const language = searchParams.get('language');
+  const spokenLanguage = searchParams.get('spoken_language');
   const sortBy = searchParams.get('sortBy') || 'popularity.desc';
   const year = searchParams.get('year');
   const minRating = searchParams.get('minRating');
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
 
     if (genreId) params.set('with_genres', genreId);
     if (language) params.set('with_original_language', language);
+    if (spokenLanguage) params.set('with_spoken_languages', spokenLanguage);
     if (year) {
       if (type === 'movie') {
         params.set('primary_release_year', year);
@@ -35,7 +37,7 @@ export async function GET(request: NextRequest) {
     }
     if (minRating) params.set('vote_average.gte', minRating);
 
-    const url = (genreId || language || year || minRating || sortBy !== 'popularity.desc')
+    const url = (genreId || language || spokenLanguage || year || minRating || sortBy !== 'popularity.desc')
       ? `${TMDB_BASE_URL}/discover/${type}?${params}`
       : `${TMDB_BASE_URL}/${type}/popular?api_key=${TMDB_API_KEY}&page=${page}`;
 

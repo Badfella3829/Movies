@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Globe, Loader2, ChevronDown, X } from 'lucide-react';
+import { Globe, Loader2, ChevronDown, X, Languages, Mic2 } from 'lucide-react';
 import { Movie } from '@/lib/tmdb';
 import { cn } from '@/lib/utils';
 import { MovieCard } from './movie-card';
@@ -23,39 +23,50 @@ const LANGUAGES = [
   { code: 'th', name: 'Thai', flag: '🇹🇭' },
 ];
 
+type Mode = 'original' | 'dubbed';
+
 interface LanguageFilterProps {
   type: 'movie' | 'tv';
 }
 
 export function LanguageFilter({ type }: LanguageFilterProps) {
+  const [mode, setMode] = useState<Mode>('original');
   const [activeLang, setActiveLang] = useState<string | null>(null);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (!activeLang) return;
     setLoading(true);
-    fetch(`/api/genre?type=${type}&language=${activeLang}&page=1`)
+    setMovies([]);
+    setPage(1);
+
+    const param = mode === 'original'
+      ? `language=${activeLang}`
+      : `spoken_language=${activeLang}`;
+
+    fetch(`/api/genre?type=${type}&${param}&page=1`)
       .then(r => r.json())
       .then(data => {
         setMovies(data.results || []);
         setTotalPages(data.total_pages || 1);
-        setPage(1);
       })
       .catch(() => setMovies([]))
       .finally(() => setLoading(false));
-  }, [activeLang, type]);
+  }, [activeLang, type, mode]);
 
   const loadMore = async () => {
     if (!activeLang || loadingMore) return;
     const next = page + 1;
     setLoadingMore(true);
     try {
-      const res = await fetch(`/api/genre?type=${type}&language=${activeLang}&page=${next}`);
+      const param = mode === 'original'
+        ? `language=${activeLang}`
+        : `spoken_language=${activeLang}`;
+      const res = await fetch(`/api/genre?type=${type}&${param}&page=${next}`);
       const data = await res.json();
       setMovies(prev => [...prev, ...(data.results || [])]);
       setPage(next);
@@ -65,14 +76,56 @@ export function LanguageFilter({ type }: LanguageFilterProps) {
     }
   };
 
+  const handleModeChange = (newMode: Mode) => {
+    setMode(newMode);
+    setActiveLang(null);
+    setMovies([]);
+  };
+
+  const handleLangClick = (code: string) => {
+    setActiveLang(code === activeLang ? null : code);
+  };
+
   const activeLangInfo = LANGUAGES.find(l => l.code === activeLang);
   const hasMore = activeLang && page < Math.min(totalPages, 10);
 
   return (
     <div className="container mx-auto px-4 my-6">
-      <div className="flex items-center gap-3 mb-4">
-        <Globe className="w-5 h-5 text-primary" />
-        <h2 className="text-base md:text-lg font-semibold">Browse by Language</h2>
+
+      {/* Header + mode toggle */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <Globe className="w-5 h-5 text-primary" />
+          <h2 className="text-base md:text-lg font-semibold">Browse by Language</h2>
+        </div>
+
+        {/* Mode toggle pill */}
+        <div className="flex items-center bg-white/5 border border-white/10 rounded-full p-1 w-fit">
+          <button
+            onClick={() => handleModeChange('original')}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all',
+              mode === 'original'
+                ? 'bg-primary text-white shadow-sm'
+                : 'text-white/50 hover:text-white'
+            )}
+          >
+            <Languages className="w-3.5 h-3.5" />
+            Original
+          </button>
+          <button
+            onClick={() => handleModeChange('dubbed')}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all',
+              mode === 'dubbed'
+                ? 'bg-primary text-white shadow-sm'
+                : 'text-white/50 hover:text-white'
+            )}
+          >
+            <Mic2 className="w-3.5 h-3.5" />
+            Dubbed In
+          </button>
+        </div>
 
         {activeLang && (
           <button
@@ -84,12 +137,19 @@ export function LanguageFilter({ type }: LanguageFilterProps) {
         )}
       </div>
 
+      {/* Mode hint */}
+      <p className="text-xs text-white/35 mb-3">
+        {mode === 'original'
+          ? 'Shows content originally made in the selected language.'
+          : 'Shows content that has been dubbed or spoken in the selected language.'}
+      </p>
+
       {/* Language Pills */}
       <div className="flex flex-wrap gap-2 mb-6">
         {LANGUAGES.map(lang => (
           <button
             key={lang.code}
-            onClick={() => setActiveLang(lang.code === activeLang ? null : lang.code)}
+            onClick={() => handleLangClick(lang.code)}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all border',
               activeLang === lang.code
@@ -114,7 +174,11 @@ export function LanguageFilter({ type }: LanguageFilterProps) {
             <>
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-lg">{activeLangInfo?.flag}</span>
-                <h3 className="font-medium text-white/80">{activeLangInfo?.name} Titles</h3>
+                <h3 className="font-medium text-white/80">
+                  {mode === 'dubbed'
+                    ? `Dubbed in ${activeLangInfo?.name}`
+                    : `${activeLangInfo?.name} Titles`}
+                </h3>
                 <span className="text-white/40 text-sm">{movies.length} results</span>
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 md:gap-3">
@@ -139,7 +203,7 @@ export function LanguageFilter({ type }: LanguageFilterProps) {
               )}
             </>
           ) : (
-            <p className="text-center text-white/40 py-12">No results found.</p>
+            <p className="text-center text-white/40 py-12">No results found for this language.</p>
           )}
         </div>
       )}
