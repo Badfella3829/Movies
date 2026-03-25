@@ -76,6 +76,12 @@ export function Footer() {
         { label: 'Official Website', href: 'https://www.techvyro.in/' },
       ],
     },
+    {
+      title: 'Legal',
+      links: [
+        { label: 'Privacy Policy', href: '/privacy-policy' },
+      ],
+    },
   ];
 
   return (
@@ -163,10 +169,16 @@ export function Footer() {
         </div>
 
         {/* Copyright */}
-        <div className="pt-6 md:pt-8 border-t border-border/50 text-center sm:text-left">
+        <div className="pt-6 md:pt-8 border-t border-border/50 text-center sm:text-left flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <p className="text-[11px] md:text-sm text-muted-foreground">
             © 2026 TechVyro. All rights reserved. Powered by TMDB API.
           </p>
+          <Link
+            href="/privacy-policy"
+            className="text-[11px] md:text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Privacy Policy
+          </Link>
         </div>
       </div>
     </footer>
