@@ -7,6 +7,7 @@ import { Play, Plus, ThumbsUp, ChevronDown, Star } from 'lucide-react';
 import { Movie, getImageUrl } from '@/lib/tmdb';
 import { cn } from '@/lib/utils';
 import { WatchProgress } from '@/components/watch-progress';
+import { UserRatingBadge } from '@/components/user-rating';
 
 interface MovieCardProps {
   movie: Movie;
@@ -139,13 +140,18 @@ function MovieCardComponent({ movie, index, priority = false }: MovieCardProps) 
             </div>
           )}
 
-          {/* Rating Badge - Mobile visible */}
+          {/* Rating Badges */}
           <div className={cn(
-            "absolute top-1.5 right-1.5 sm:top-2 sm:right-2 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-sm transition-opacity",
+            "absolute top-1.5 right-1.5 sm:top-2 sm:right-2 flex flex-col items-end gap-1 transition-opacity",
             isMounted && isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"
           )}>
-            <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-yellow-500" />
-            <span className="text-[10px] sm:text-xs font-medium">{rating}</span>
+            {/* TMDB Rating */}
+            <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-sm">
+              <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-yellow-500" />
+              <span className="text-[10px] sm:text-xs font-medium">{rating}</span>
+            </div>
+            {/* User Rating Badge */}
+            <UserRatingBadge mediaId={movie.id} />
           </div>
 
           {/* Hover Overlay */}

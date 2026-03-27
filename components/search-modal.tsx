@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, X, Clock, TrendingUp, SlidersHorizontal, ChevronDown, Star, Calendar } from 'lucide-react';
+import { Search, X, Clock, TrendingUp, SlidersHorizontal, ChevronDown, Star, Calendar, Mic } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Movie, getImageUrl } from '@/lib/tmdb';
 import { cn } from '@/lib/utils';
+import { VoiceSearch } from '@/components/voice-search';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -223,6 +224,14 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
               </button>
             )}
           </div>
+          {/* Voice Search */}
+          <VoiceSearch 
+            onResult={(text) => {
+              setQuery(text);
+              saveRecentSearch(text);
+            }}
+            className="flex-shrink-0"
+          />
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={cn(
