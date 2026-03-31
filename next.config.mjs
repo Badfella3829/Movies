@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  allowedDevOrigins: ['*.replit.dev', '*.kirk.replit.dev'],
+  allowedDevOrigins: ['*.replit.dev', '*.kirk.replit.dev', '*.spock.replit.dev', '*.replit.app'],
   typescript: {
     ignoreBuildErrors: true,
   },
