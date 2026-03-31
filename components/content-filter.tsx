@@ -48,6 +48,8 @@ const GENRES_TV = [
   { id: '37', name: 'Western' },
 ];
 
+const FILTER_STORAGE_KEY = 'contentFilterState';
+
 export function ContentFilter() {
   const [type, setType] = useState('movie');
   const [year, setYear] = useState('');
@@ -57,6 +59,25 @@ export function ContentFilter() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(FILTER_STORAGE_KEY);
+      if (saved) {
+        const { type: t, year: y, genre: g, isOpen: o } = JSON.parse(saved);
+        if (t) setType(t);
+        if (y) setYear(y);
+        if (g) setGenre(g);
+        if (o) setIsOpen(true);
+      }
+    } catch { }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({ type, year, genre, isOpen }));
+    } catch { }
+  }, [type, year, genre, isOpen]);
 
   const genres = type === 'tv' ? GENRES_TV : GENRES_MOVIE;
 

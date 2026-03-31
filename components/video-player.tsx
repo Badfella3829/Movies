@@ -1153,10 +1153,10 @@ export function VideoPlayer({
         </div>
       </div>
 
-      {/* Netflix-style Bottom Controls Bar - Only show when loading or user hovers */}
+      {/* Netflix-style Bottom Controls Bar - Always show on mobile, conditionally on desktop */}
       <div 
         className={`absolute bottom-0 left-0 right-0 z-[35] transition-all duration-500 ${
-          isMinimized ? 'hidden' : (controlsVisible && (isLoading || isAutoFetching || type === 'tv')) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none'
+          isMinimized ? 'hidden' : controlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none'
         }`}
       >
         <div className="bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-6 pb-3 sm:pt-8 sm:pb-4 px-3 sm:px-6">
@@ -1191,6 +1191,54 @@ export function VideoPlayer({
               )}
             </div>
           )}
+
+          {/* Mobile-only Download & Sandbox Row */}
+          <div className="flex sm:hidden items-center gap-2 mb-2 px-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs border border-white/10 transition-all">
+                  <Download className="w-3.5 h-3.5" />
+                  Download
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="bg-zinc-900/95 backdrop-blur-sm border-white/10 z-[60] min-w-[200px]">
+                <div className="px-3 py-1.5 text-[10px] text-white/40 font-semibold uppercase tracking-widest">Download</div>
+                <DropdownMenuSeparator className="bg-white/10" />
+                {type === 'movie' ? (
+                  <a href={`https://dl.vidsrc.vip/movie/${tmdbId}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/10 cursor-pointer transition-colors">
+                    <Download className="w-3.5 h-3.5 text-green-400" />
+                    Download Movie
+                  </a>
+                ) : (
+                  <>
+                    {Array.from({ length: Math.min(totalSeasons, 5) }, (_, i) => i + 1).map(s => (
+                      <a key={s} href={`https://dl.vidsrc.vip/tv/${tmdbId}/${s}/1`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/10 cursor-pointer transition-colors">
+                        <Download className="w-3.5 h-3.5 text-green-400" />
+                        Season {s}
+                      </a>
+                    ))}
+                    <DropdownMenuSeparator className="bg-white/10" />
+                    <a href={`https://dl.vidsrc.vip/tv/${tmdbId}/${currentSeason}/${currentEpisode}`} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-green-400 hover:bg-white/10 cursor-pointer transition-colors font-medium">
+                      <Download className="w-3.5 h-3.5" />
+                      S{currentSeason}E{currentEpisode}
+                    </a>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <button
+              onClick={() => { setSandboxMode(prev => !prev); setIsLoading(true); setLoadStartTime(Date.now()); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-all ${
+                sandboxMode ? 'bg-green-500/20 border-green-400/40 text-green-400' : 'bg-white/10 border-white/10 text-white hover:bg-white/20'
+              }`}
+            >
+              {sandboxMode ? <Shield className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
+              Sandbox {sandboxMode ? 'On' : 'Off'}
+            </button>
+          </div>
 
           {/* Controls Row - Compact for mobile */}
           <div className="flex items-center justify-between gap-2 sm:gap-4">
