@@ -441,8 +441,8 @@ export function VideoPlayer({
       );
     }
 
-    // Dynamic timeout: 4s for servers with good history, 3s for unknown/bad servers
-    const timeout = hasGoodStats ? 4000 : 3000;
+    // Dynamic timeout: 7s for servers with good history, 5s for unknown/bad servers
+    const timeout = hasGoodStats ? 7000 : 5000;
     
     timeoutRef.current = setTimeout(() => {
       if (isLoading && isAutoFetching) {
@@ -462,8 +462,20 @@ export function VideoPlayer({
       clearTimeout(timeoutRef.current);
     }
     
-    const loadTime = loadStartTime ? Date.now() - loadStartTime : undefined;
+    const loadTime = loadStartTime ? Date.now() - loadStartTime : 9999;
     const currentId = currentServer?.id;
+
+    // If loaded in under 1800ms during auto-fetch, it's almost certainly an error page.
+    // Real video players (JS bundled) take 2-6 seconds to initialize. Error/redirect pages
+    // respond in under a second. Skip to next server automatically.
+    if (isAutoFetching && loadTime < 1800) {
+      if (currentId) {
+        setServerStatuses(prev => ({ ...prev, [currentId]: 'failed' }));
+        updateServerStats(currentId, false);
+      }
+      tryNextServer();
+      return;
+    }
     
     if (currentId) {
       setServerStatuses(prev => ({ ...prev, [currentId]: 'success' }));
@@ -478,7 +490,7 @@ export function VideoPlayer({
     saveWatchProgress(
       tmdbId, 
       type, 
-      10, // Start at 10% when video begins
+      10,
       undefined,
       type === 'tv' ? currentSeason : undefined,
       type === 'tv' ? currentEpisode : undefined
@@ -1180,6 +1192,15 @@ export function VideoPlayer({
                   </div>
                 )}
               </div>
+              {isAutoFetching && (
+                <button
+                  onClick={tryNextServer}
+                  className="shrink-0 px-2.5 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/70 text-xs transition-colors flex items-center gap-1"
+                >
+                  <SkipForward className="w-3 h-3" />
+                  Skip
+                </button>
+              )}
               {!isAutoFetching && !isLoading && (
                 <button
                   onClick={handleRetryAutoFetch}
@@ -1239,6 +1260,30 @@ export function VideoPlayer({
               Sandbox {sandboxMode ? 'On' : 'Off'}
             </button>
           </div>
+
+          {/* "Not playing?" hint bar — visible when player thinks video loaded but might be wrong */}
+          {!isLoading && !isAutoFetching && currentServerIndex < servers.length - 1 && (
+            <div className="flex items-center justify-between gap-2 mb-2 px-1">
+              <p className="text-white/40 text-[11px]">
+                Video not playing? Try another server.
+              </p>
+              <button
+                onClick={() => {
+                  const nextIdx = currentServerIndex + 1;
+                  if (nextIdx < servers.length) {
+                    setCurrentServerIndex(nextIdx);
+                    setIsLoading(true);
+                    setIsAutoFetching(false);
+                    setLoadStartTime(Date.now());
+                  }
+                }}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white/25 border border-white/15 text-white text-[11px] font-medium transition-all"
+              >
+                <SkipForward className="w-3 h-3" />
+                Next Server
+              </button>
+            </div>
+          )}
 
           {/* Controls Row - Compact for mobile */}
           <div className="flex items-center justify-between gap-2 sm:gap-4">
