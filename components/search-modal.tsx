@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, X, Clock, TrendingUp, SlidersHorizontal, ChevronDown, Star, Calendar, Mic } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Movie, getImageUrl } from '@/lib/tmdb';
@@ -110,21 +109,27 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     try {
       let filtered: Movie[] = [];
 
+      const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+      
       // IMDB ID search (e.g. tt1234567)
       if (/^tt\d+$/i.test(searchQuery.trim())) {
-        const response = await fetch(`/api/imdb?id=${encodeURIComponent(searchQuery.trim())}`);
+        const response = await fetch(
+          `https://api.themoviedb.org/3/find/${searchQuery.trim()}?api_key=${TMDB_KEY}&external_source=imdb_id`
+        );
         const data = await response.json();
-        filtered = data.results || [];
-        setResults(filtered.slice(0, 18));
+        const results = [
+          ...(data.movie_results || []).map((m: Movie) => ({ ...m, media_type: 'movie' })),
+          ...(data.tv_results || []).map((t: Movie) => ({ ...t, media_type: 'tv' })),
+        ];
+        setResults(results.slice(0, 18));
         return;
       }
 
-      const params = new URLSearchParams({ query: searchQuery });
-      if (type !== 'multi') params.set('type', type);
-      if (decade) params.set('year', decade);
-      if (rating > 0) params.set('rating', String(rating));
-
-      const response = await fetch(`/api/search?${params}`);
+      // Direct TMDB search - no Vercel serverless overhead
+      const endpoint = type === 'multi' ? 'search/multi' : `search/${type}`;
+      const response = await fetch(
+        `https://api.themoviedb.org/3/${endpoint}?api_key=${TMDB_KEY}&query=${encodeURIComponent(searchQuery)}`
+      );
       const data = await response.json();
 
       filtered = data.results || [];
@@ -375,17 +380,16 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                       className="group"
                     >
                       <div className="relative aspect-[2/3] rounded-md overflow-hidden mb-1.5 sm:mb-2 bg-muted">
-                        <Image
-                          src={getImageUrl(item.poster_path, 'w300')}
+                        <img
+                          src={getImageUrl(item.poster_path, 'w342')}
                           alt={title}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 16vw"
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           loading="lazy"
+                          decoding="async"
                         />
                         {rating && (
                           <div className="absolute top-1 right-1 bg-black/70 backdrop-blur-sm px-1.5 py-0.5 rounded text-xs font-bold text-yellow-400 flex items-center gap-0.5">
-                            ⭐ {rating}
+                            {rating}
                           </div>
                         )}
                       </div>

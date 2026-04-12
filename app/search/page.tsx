@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Search, Loader2, Film, Tv, Star, TrendingUp, Hash } from 'lucide-react';
 import { getImageUrl } from '@/lib/tmdb';
@@ -28,12 +27,12 @@ function ResultCard({ item }: { item: SearchResult }) {
     <Link href={`/${item.media_type}/${item.id}`} className="group">
       <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-white/5 mb-2">
         {item.poster_path ? (
-          <Image
-            src={getImageUrl(item.poster_path, 'w500')}
+          <img
+            src={getImageUrl(item.poster_path, 'w342')}
             alt={title}
-            fill
-            sizes="(max-width: 640px) 45vw, (max-width: 768px) 30vw, (max-width: 1024px) 22vw, 16vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-white/20">
@@ -81,15 +80,29 @@ function SearchContent() {
 
     const isImdb = IMDB_ID_REGEX.test(value.trim());
     setIsImdbSearch(isImdb);
+    const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
     try {
-      let res;
+      let data;
       if (isImdb) {
-        res = await fetch(`/api/imdb?id=${encodeURIComponent(value.trim())}`);
+        // Direct TMDB API call for IMDB search - no Vercel serverless
+        const res = await fetch(
+          `https://api.themoviedb.org/3/find/${value.trim()}?api_key=${TMDB_KEY}&external_source=imdb_id`
+        );
+        const findData = await res.json();
+        data = {
+          results: [
+            ...(findData.movie_results || []).map((m: SearchResult) => ({ ...m, media_type: 'movie' })),
+            ...(findData.tv_results || []).map((t: SearchResult) => ({ ...t, media_type: 'tv' })),
+          ]
+        };
       } else {
-        res = await fetch(`/api/search?query=${encodeURIComponent(value)}`);
+        // Direct TMDB API call for search - no Vercel serverless
+        const res = await fetch(
+          `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_KEY}&query=${encodeURIComponent(value)}`
+        );
+        data = await res.json();
       }
-      const data = await res.json();
       setResults(data.results?.filter((r: SearchResult) => r.media_type !== 'person') || []);
     } catch { setResults([]); }
     finally { setLoading(false); }
@@ -100,7 +113,9 @@ function SearchContent() {
   }, [q, doSearch]);
 
   useEffect(() => {
-    fetch('/api/trending')
+    // Direct TMDB API call for trending - no Vercel serverless
+    const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+    fetch(`https://api.themoviedb.org/3/trending/all/week?api_key=${TMDB_KEY}`)
       .then(r => r.json())
       .then(d => setTrending(d.results?.filter((r: SearchResult) => r.media_type !== 'person') || []))
       .catch(() => setTrending([]))

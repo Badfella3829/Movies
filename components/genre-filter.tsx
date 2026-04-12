@@ -99,8 +99,29 @@ export function GenreFilter({ genres, initialRows, type }: GenreFilterProps) {
   };
 
   const fetchMovies = async (genreId: number | null, page: number, overrides?: { sortBy?: string; year?: string; minRating?: string }) => {
-    const params = buildQueryParams(genreId, page, overrides);
-    const res = await fetch(`/api/genre?${params}`);
+    const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+    const useSortBy = overrides?.sortBy ?? sortBy;
+    const useYear = overrides?.year !== undefined ? overrides.year : year;
+    const useMinRating = overrides?.minRating !== undefined ? overrides.minRating : minRating;
+    
+    // Direct TMDB API call - no Vercel serverless overhead
+    const params = new URLSearchParams({
+      api_key: TMDB_KEY || '',
+      page: String(page),
+      sort_by: useSortBy || 'popularity.desc',
+    });
+    if (genreId !== null) params.set('with_genres', String(genreId));
+    if (useYear) {
+      if (type === 'movie') {
+        params.set('primary_release_year', useYear);
+      } else {
+        params.set('first_air_date_year', useYear);
+      }
+    }
+    if (useMinRating) params.set('vote_average.gte', useMinRating);
+    
+    const endpoint = type === 'tv' ? 'discover/tv' : 'discover/movie';
+    const res = await fetch(`https://api.themoviedb.org/3/${endpoint}?${params}`);
     return res.json();
   };
 

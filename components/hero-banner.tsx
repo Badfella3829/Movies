@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, memo } from 'react';
-import Image from 'next/image';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Play, Info, Volume2, VolumeX, Star, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -77,10 +76,18 @@ export function HeroBanner({ movies }: HeroBannerProps) {
     }
     setIsFetchingTrailer(true);
     try {
-      const res = await fetch(`/api/trailer?id=${currentMovie.id}&type=${mediaType}`);
+      // Direct TMDB API call - no Vercel serverless overhead
+      const res = await fetch(
+        `https://api.themoviedb.org/3/${mediaType}/${currentMovie.id}/videos?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`
+      );
       const data = await res.json();
-      if (data.key) {
-        setTrailerKey(data.key);
+      const videos = data.results || [];
+      const trailer = 
+        videos.find((v: {site: string; type: string; key: string}) => v.site === 'YouTube' && v.type === 'Trailer') ||
+        videos.find((v: {site: string; type: string; key: string}) => v.site === 'YouTube' && v.type === 'Teaser') ||
+        videos.find((v: {site: string; key: string}) => v.site === 'YouTube');
+      if (trailer?.key) {
+        setTrailerKey(trailer.key);
         setShowTrailer(true);
       }
     } catch {
@@ -107,18 +114,18 @@ export function HeroBanner({ movies }: HeroBannerProps) {
                 <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
               </div>
             )}
-            <Image
+            {/* Native img - direct TMDB CDN load for hero image */}
+            <img
               src={getImageUrl(currentMovie.backdrop_path, 'original')}
               alt={title}
-              fill
               className={cn(
-                "object-cover object-top sm:object-center transition-opacity duration-500",
+                "absolute inset-0 w-full h-full object-cover object-top sm:object-center transition-opacity duration-500",
                 imageLoaded ? "opacity-100" : "opacity-0"
               )}
-              priority
               onLoad={() => setImageLoaded(true)}
-              sizes="100vw"
-              quality={85}
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
             />
           </div>
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent md:via-background/50" />
