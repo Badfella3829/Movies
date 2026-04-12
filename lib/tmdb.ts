@@ -1,10 +1,12 @@
+import { unstable_cache } from 'next/cache';
+
 const TMDB_API_KEY = process.env.TMDB_API_KEY || '';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
 
-// In-memory cache for API responses (survives within the process lifetime)
-const cache = new Map<string, { data: unknown; timestamp: number }>();
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+// Cache duration: 4 hours (14400 seconds)
+// All users share the same cached data - only 1 API call per 4 hours
+const CACHE_DURATION = 14400;
 
 export interface Movie {
   id: number;
@@ -77,29 +79,44 @@ export function getImageUrl(path: string | null, size: 'w200' | 'w300' | 'w500' 
   return `${TMDB_IMAGE_BASE}/${size}${path}`;
 }
 
-export async function fetchFromTMDB<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
+// Internal fetch function (called by cached wrapper)
+async function _fetchFromTMDB<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
   if (!TMDB_API_KEY) {
     throw new Error('TMDB_API_KEY environment variable is not set. Please add it in project settings.');
   }
 
   const searchParams = new URLSearchParams({ api_key: TMDB_API_KEY, ...params });
-  const cacheKey = `${endpoint}?${searchParams.toString()}`;
   const url = `${TMDB_BASE_URL}${endpoint}?${searchParams}`;
 
-  // In-memory cache check
-  const mem = cache.get(cacheKey);
-  if (mem && Date.now() - mem.timestamp < CACHE_TTL) {
-    return mem.data as T;
-  }
-
-  const response = await fetch(url, { next: { revalidate: 14400 } }); // 4h Next.js data cache
+  const response = await fetch(url, { 
+    next: { revalidate: CACHE_DURATION },
+    headers: { 'Accept': 'application/json' }
+  });
+  
   if (!response.ok) {
     if (response.status === 401) throw new Error('TMDB API key is invalid. Please check your TMDB_API_KEY in project settings.');
     throw new Error(`TMDB API error: ${response.status}`);
   }
-  const data = await response.json();
-  cache.set(cacheKey, { data, timestamp: Date.now() });
-  return data;
+  
+  return response.json();
+}
+
+// Create a cached version of API calls using unstable_cache
+// This ensures all users share the same cached response for 4 hours
+export async function fetchFromTMDB<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
+  // Create unique cache key from endpoint and params
+  const cacheKey = `tmdb-${endpoint}-${JSON.stringify(params)}`.replace(/[^a-zA-Z0-9-]/g, '_');
+  
+  const cachedFetch = unstable_cache(
+    async () => _fetchFromTMDB<T>(endpoint, params),
+    [cacheKey],
+    {
+      revalidate: CACHE_DURATION, // 4 hours
+      tags: ['tmdb', `tmdb-${endpoint.split('/')[1] || 'general'}`],
+    }
+  );
+  
+  return cachedFetch();
 }
 
 export async function getTrending(timeWindow: 'day' | 'week' = 'week'): Promise<MovieResponse> {
@@ -299,3 +316,121 @@ export const TV_GENRES: Genre[] = [
   { id: 10768, name: 'War & Politics' },
   { id: 37, name: 'Western' },
 ];
+
+// Batched home page data - single cached call instead of 17 separate calls
+export interface HomePageData {
+  trending: MovieResponse;
+  popular: MovieResponse;
+  nowPlaying: MovieResponse;
+  popularTV: MovieResponse;
+  topRated: MovieResponse;
+  topRatedTV: MovieResponse;
+  upcoming: MovieResponse;
+  genres: {
+    action: MovieResponse;
+    comedy: MovieResponse;
+    horror: MovieResponse;
+    sciFi: MovieResponse;
+    romance: MovieResponse;
+    thriller: MovieResponse;
+    animation: MovieResponse;
+    documentary: MovieResponse;
+  };
+  tvGenres: {
+    crime: MovieResponse;
+    drama: MovieResponse;
+  };
+}
+
+const emptyResponse: MovieResponse = { page: 1, results: [], total_pages: 0, total_results: 0 };
+
+// Fetch all home page data in parallel and cache as single unit
+async function _getHomePageData(): Promise<HomePageData> {
+  const [
+    trending,
+    popular,
+    nowPlaying,
+    popularTV,
+    topRated,
+    topRatedTV,
+    upcoming,
+    action,
+    comedy,
+    horror,
+    sciFi,
+    romance,
+    thriller,
+    animation,
+    documentary,
+    crimeTV,
+    dramaTV,
+  ] = await Promise.all([
+    _fetchFromTMDB<MovieResponse>('/trending/all/week'),
+    _fetchFromTMDB<MovieResponse>('/movie/popular'),
+    _fetchFromTMDB<MovieResponse>('/movie/now_playing'),
+    _fetchFromTMDB<MovieResponse>('/tv/popular'),
+    _fetchFromTMDB<MovieResponse>('/movie/top_rated'),
+    _fetchFromTMDB<MovieResponse>('/tv/top_rated'),
+    _fetchFromTMDB<MovieResponse>('/movie/upcoming'),
+    _fetchFromTMDB<MovieResponse>('/discover/movie', { with_genres: '28' }),
+    _fetchFromTMDB<MovieResponse>('/discover/movie', { with_genres: '35' }),
+    _fetchFromTMDB<MovieResponse>('/discover/movie', { with_genres: '27' }),
+    _fetchFromTMDB<MovieResponse>('/discover/movie', { with_genres: '878' }),
+    _fetchFromTMDB<MovieResponse>('/discover/movie', { with_genres: '10749' }),
+    _fetchFromTMDB<MovieResponse>('/discover/movie', { with_genres: '53' }),
+    _fetchFromTMDB<MovieResponse>('/discover/movie', { with_genres: '16' }),
+    _fetchFromTMDB<MovieResponse>('/discover/movie', { with_genres: '99' }),
+    _fetchFromTMDB<MovieResponse>('/discover/tv', { with_genres: '80' }),
+    _fetchFromTMDB<MovieResponse>('/discover/tv', { with_genres: '18' }),
+  ]);
+
+  return {
+    trending,
+    popular,
+    nowPlaying,
+    popularTV,
+    topRated,
+    topRatedTV,
+    upcoming,
+    genres: { action, comedy, horror, sciFi, romance, thriller, animation, documentary },
+    tvGenres: { crime: crimeTV, drama: dramaTV },
+  };
+}
+
+// Single cached call for entire home page - 4 hours cache
+export const getHomePageData = unstable_cache(
+  _getHomePageData,
+  ['home-page-data'],
+  {
+    revalidate: CACHE_DURATION,
+    tags: ['tmdb', 'home'],
+  }
+);
+
+// Safe version with fallback
+export async function getHomePageDataSafe(): Promise<HomePageData> {
+  try {
+    return await getHomePageData();
+  } catch {
+    return {
+      trending: emptyResponse,
+      popular: emptyResponse,
+      nowPlaying: emptyResponse,
+      popularTV: emptyResponse,
+      topRated: emptyResponse,
+      topRatedTV: emptyResponse,
+      upcoming: emptyResponse,
+      genres: {
+        action: emptyResponse,
+        comedy: emptyResponse,
+        horror: emptyResponse,
+        sciFi: emptyResponse,
+        romance: emptyResponse,
+        thriller: emptyResponse,
+        animation: emptyResponse,
+        documentary: emptyResponse,
+      },
+      tvGenres: { crime: emptyResponse, drama: emptyResponse },
+    };
+  }
+}
