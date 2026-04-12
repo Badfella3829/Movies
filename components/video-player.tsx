@@ -97,7 +97,12 @@ export function VideoPlayer({
   const [nextEpisodeCountdown, setNextEpisodeCountdown] = useState<number | null>(null);
   // Still Watching
   const [showStillWatching, setShowStillWatching] = useState(false);
+  const [preloadedServerIndex, setPreloadedServerIndex] = useState<number | null>(null);
+  const [doubleTapSide, setDoubleTapSide] = useState<'left' | 'right' | null>(null);
+  const [skipIndicator, setSkipIndicator] = useState<{ side: 'left' | 'right'; seconds: number } | null>(null);
+  const lastTapRef = useRef<{ time: number; x: number }>({ time: 0, x: 0 });
   const playerRef = useRef<HTMLDivElement>(null);
+  const preloadIframeRef = useRef<HTMLIFrameElement>(null);
 
   // Track fullscreen changes
   useEffect(() => {
@@ -147,6 +152,139 @@ export function VideoPlayer({
     }, 60_000);
     return () => clearInterval(id);
   }, [isMinimized, isLoading]);
+
+  // Remember last successful server preference
+  useEffect(() => {
+    if (!isLoading && currentServer && serverStatuses[currentServer.id] === 'success') {
+      try {
+        localStorage.setItem('preferredServer', currentServer.id);
+      } catch {}
+    }
+  }, [isLoading, currentServer, serverStatuses]);
+
+  // Load preferred server on mount and do health check
+  useEffect(() => {
+    if (!isMounted || servers.length === 0) return;
+    
+    // Check preferred server
+    try {
+      const preferred = localStorage.getItem('preferredServer');
+      if (preferred) {
+        const idx = servers.findIndex(s => s.id === preferred);
+        if (idx > 0) {
+          // Move preferred server to top of auto-fetch queue
+          const reordered = [...servers];
+          const [preferredServer] = reordered.splice(idx, 1);
+          reordered.unshift(preferredServer);
+          setServers(reordered);
+        }
+      }
+    } catch {}
+
+    // Server health check - ping top 3 servers to warm up connections
+    const topServers = servers.slice(0, 3);
+    topServers.forEach(server => {
+      const url = getEmbedUrl(server, tmdbId, type, currentSeason, currentEpisode, imdbId);
+      if (url) {
+        // Create a prefetch link to warm DNS and connection
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = url;
+        link.as = 'document';
+        document.head.appendChild(link);
+        
+        // Clean up after 5 seconds
+        setTimeout(() => {
+          try { document.head.removeChild(link); } catch {}
+        }, 5000);
+      }
+    });
+  }, [isMounted, servers.length > 0]);
+
+  // Preload next server iframe for faster fallback
+  useEffect(() => {
+    if (!isAutoFetching || servers.length <= 1) return;
+    const nextIdx = currentServerIndex + 1;
+    if (nextIdx < servers.length) {
+      setPreloadedServerIndex(nextIdx);
+    }
+  }, [currentServerIndex, isAutoFetching, servers.length]);
+
+  // Get preload URL for next server
+  const preloadUrl = preloadedServerIndex !== null && servers[preloadedServerIndex]
+    ? getEmbedUrl(servers[preloadedServerIndex], tmdbId, type, currentSeason, currentEpisode, imdbId)
+    : null;
+
+  // Swipe gesture state for volume/brightness
+  const swipeStartRef = useRef<{ x: number; y: number; side: 'left' | 'right' } | null>(null);
+  const [swipeIndicator, setSwipeIndicator] = useState<{ type: 'volume' | 'brightness'; value: number } | null>(null);
+
+  // Handle swipe start
+  const handleSwipeStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    const screenWidth = window.innerWidth;
+    const side = touch.clientX < screenWidth / 2 ? 'left' : 'right';
+    swipeStartRef.current = { x: touch.clientX, y: touch.clientY, side };
+  }, []);
+
+  // Handle swipe move for volume/brightness
+  const handleSwipeMove = useCallback((e: React.TouchEvent) => {
+    if (!swipeStartRef.current) return;
+    
+    const touch = e.touches[0];
+    const deltaY = swipeStartRef.current.y - touch.clientY;
+    const screenHeight = window.innerHeight;
+    const sensitivity = 200; // pixels for full range
+    
+    // Only trigger if vertical movement is significant
+    if (Math.abs(deltaY) > 20) {
+      const change = Math.min(100, Math.max(0, 50 + (deltaY / sensitivity) * 50));
+      const type = swipeStartRef.current.side === 'right' ? 'volume' : 'brightness';
+      setSwipeIndicator({ type, value: Math.round(change) });
+    }
+  }, []);
+
+  // Handle swipe end
+  const handleSwipeEnd = useCallback(() => {
+    swipeStartRef.current = null;
+    setTimeout(() => setSwipeIndicator(null), 500);
+  }, []);
+
+  // Double-tap to skip 10 seconds (mobile gesture)
+  const handleDoubleTap = useCallback((e: React.TouchEvent) => {
+    const now = Date.now();
+    const touch = e.touches[0] || e.changedTouches[0];
+    const x = touch.clientX;
+    const screenWidth = window.innerWidth;
+    const tapThreshold = 300; // ms between taps
+    
+    if (now - lastTapRef.current.time < tapThreshold) {
+      // Double tap detected
+      const side = x < screenWidth / 2 ? 'left' : 'right';
+      const seconds = side === 'left' ? -10 : 10;
+      
+      setSkipIndicator({ side, seconds: Math.abs(seconds) });
+      setDoubleTapSide(side);
+      
+      // Send skip command to iframe (if supported)
+      if (iframeRef.current?.contentWindow) {
+        try {
+          iframeRef.current.contentWindow.postMessage(
+            { type: 'skip', seconds },
+            '*'
+          );
+        } catch {}
+      }
+      
+      // Clear indicator after animation
+      setTimeout(() => {
+        setSkipIndicator(null);
+        setDoubleTapSide(null);
+      }, 600);
+    }
+    
+    lastTapRef.current = { time: now, x };
+  }, []);
 
   // Get enhanced server list with stats
   const getEnhancedServerList = () => {
@@ -1489,8 +1627,17 @@ export function VideoPlayer({
           }`}
           onMouseMove={showControls}
           onTouchStart={(e) => {
-            e.preventDefault();
+            handleDoubleTap(e);
+            handleSwipeStart(e);
             showControls();
+          }}
+          onTouchMove={handleSwipeMove}
+          onTouchEnd={(e) => {
+            handleSwipeEnd();
+            // Prevent default only if not double-tapping
+            if (Date.now() - lastTapRef.current.time > 300) {
+              e.preventDefault();
+            }
           }}
           onClick={(e) => {
             if (!controlsVisible) {
@@ -1500,6 +1647,57 @@ export function VideoPlayer({
             showControls();
           }}
         />
+
+        {/* Swipe volume/brightness indicator */}
+        {swipeIndicator && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[16] pointer-events-none">
+            <div className="flex flex-col items-center gap-2 bg-black/70 backdrop-blur-sm rounded-2xl p-5">
+              {swipeIndicator.type === 'volume' ? (
+                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+              ) : (
+                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              )}
+              <div className="w-24 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-white rounded-full transition-all duration-100"
+                  style={{ width: `${swipeIndicator.value}%` }}
+                />
+              </div>
+              <span className="text-white text-xs font-medium">{swipeIndicator.value}%</span>
+            </div>
+          </div>
+        )}
+
+        {/* Double-tap skip indicator */}
+        {skipIndicator && (
+          <div 
+            className={`absolute top-1/2 -translate-y-1/2 z-[15] pointer-events-none animate-pulse ${
+              skipIndicator.side === 'left' ? 'left-8' : 'right-8'
+            }`}
+          >
+            <div className="flex flex-col items-center gap-1 bg-black/60 backdrop-blur-sm rounded-full p-4">
+              {skipIndicator.side === 'left' ? (
+                <ChevronLeft className="w-8 h-8 text-white" />
+              ) : (
+                <ChevronRight className="w-8 h-8 text-white" />
+              )}
+              <span className="text-white text-xs font-medium">{skipIndicator.seconds}s</span>
+            </div>
+          </div>
+        )}
+
+        {/* Ripple effect on double-tap */}
+        {doubleTapSide && (
+          <div 
+            className={`absolute top-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-white/20 animate-ping z-[14] pointer-events-none ${
+              doubleTapSide === 'left' ? 'left-12' : 'right-12'
+            }`}
+          />
+        )}
         
         {/* Video iframe */}
         {isMounted && embedUrl && (
@@ -1519,6 +1717,17 @@ export function VideoPlayer({
                 tryNextServer();
               }
             }}
+          />
+        )}
+
+        {/* Preload next server iframe (hidden) for faster fallback */}
+        {preloadUrl && isAutoFetching && (
+          <iframe
+            ref={preloadIframeRef}
+            src={preloadUrl}
+            className="absolute w-0 h-0 opacity-0 pointer-events-none"
+            tabIndex={-1}
+            aria-hidden="true"
           />
         )}
       </div>
