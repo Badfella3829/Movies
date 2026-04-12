@@ -109,21 +109,27 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     try {
       let filtered: Movie[] = [];
 
+      const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+      
       // IMDB ID search (e.g. tt1234567)
       if (/^tt\d+$/i.test(searchQuery.trim())) {
-        const response = await fetch(`/api/imdb?id=${encodeURIComponent(searchQuery.trim())}`);
+        const response = await fetch(
+          `https://api.themoviedb.org/3/find/${searchQuery.trim()}?api_key=${TMDB_KEY}&external_source=imdb_id`
+        );
         const data = await response.json();
-        filtered = data.results || [];
-        setResults(filtered.slice(0, 18));
+        const results = [
+          ...(data.movie_results || []).map((m: Movie) => ({ ...m, media_type: 'movie' })),
+          ...(data.tv_results || []).map((t: Movie) => ({ ...t, media_type: 'tv' })),
+        ];
+        setResults(results.slice(0, 18));
         return;
       }
 
-      const params = new URLSearchParams({ query: searchQuery });
-      if (type !== 'multi') params.set('type', type);
-      if (decade) params.set('year', decade);
-      if (rating > 0) params.set('rating', String(rating));
-
-      const response = await fetch(`/api/search?${params}`);
+      // Direct TMDB search - no Vercel serverless overhead
+      const endpoint = type === 'multi' ? 'search/multi' : `search/${type}`;
+      const response = await fetch(
+        `https://api.themoviedb.org/3/${endpoint}?api_key=${TMDB_KEY}&query=${encodeURIComponent(searchQuery)}`
+      );
       const data = await response.json();
 
       filtered = data.results || [];

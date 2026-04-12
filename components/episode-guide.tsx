@@ -30,7 +30,9 @@ export function EpisodeGuide({ tvId, seasons, onPlayEpisode }: EpisodeGuideProps
   useEffect(() => {
     setLoading(true);
     setNowPlaying(null);
-    fetch(`/api/season?tvId=${tvId}&season=${selectedSeason}`)
+    // Direct TMDB API call - no Vercel serverless overhead
+    const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+    fetch(`https://api.themoviedb.org/3/tv/${tvId}/season/${selectedSeason}?api_key=${TMDB_KEY}`)
       .then((r) => r.json())
       .then((data) => {
         const eps: Episode[] = data.episodes || [];

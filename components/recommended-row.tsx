@@ -21,9 +21,9 @@ export function RecommendedRow() {
       const type = tvCount > movieCount ? 'tv' : 'movie';
       setDominantType(type);
 
-      const endpoint = type === 'tv'
-        ? '/api/genre?type=tv'
-        : '/api/genre?type=movie';
+      // Direct TMDB API call - no Vercel serverless overhead
+      const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+      const endpoint = `https://api.themoviedb.org/3/${type}/popular?api_key=${TMDB_KEY}`;
 
       fetch(endpoint)
         .then(r => r.json())

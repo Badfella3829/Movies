@@ -84,16 +84,30 @@ export function ContentFilter() {
     setIsLoading(true);
     const currentPage = resetPage ? 1 : page + 1;
     try {
-      const params = new URLSearchParams({ type, page: String(currentPage) });
-      if (year) params.set('year', year);
-      if (genre) params.set('genre', genre);
-      const res = await fetch(`/api/discover?${params}`);
+      const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+      // Direct TMDB API call - no Vercel serverless overhead
+      const params = new URLSearchParams({
+        api_key: TMDB_KEY || '',
+        sort_by: 'popularity.desc',
+        page: String(currentPage),
+      });
+      if (year) params.set('primary_release_year', year);
+      if (genre) params.set('with_genres', genre);
+      
+      const endpoint = type === 'tv' ? 'discover/tv' : 'discover/movie';
+      const res = await fetch(`https://api.themoviedb.org/3/${endpoint}?${params}`);
       const data = await res.json();
+      
+      const resultsWithType = (data.results || []).map((item: Movie) => ({
+        ...item,
+        media_type: type,
+      }));
+      
       if (resetPage) {
-        setResults(data.results || []);
+        setResults(resultsWithType);
         setPage(1);
       } else {
-        setResults(prev => [...prev, ...(data.results || [])]);
+        setResults(prev => [...prev, ...resultsWithType]);
         setPage(currentPage);
       }
       setHasMore((data.page || 1) < (data.total_pages || 1));

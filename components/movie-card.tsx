@@ -84,9 +84,17 @@ function MovieCardComponent({ movie, index, priority = false }: MovieCardProps) 
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = setTimeout(async () => {
         try {
-          const res = await fetch(`/api/trailer?id=${movie.id}&type=${mediaType}`);
+          // Direct TMDB API call - no Vercel serverless overhead
+          const res = await fetch(
+            `https://api.themoviedb.org/3/${mediaType}/${movie.id}/videos?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`
+          );
           const data = await res.json();
-          setTrailerKey(data.key || null);
+          const videos = data.results || [];
+          const trailer = 
+            videos.find((v: {site: string; type: string; key: string}) => v.site === 'YouTube' && v.type === 'Trailer') ||
+            videos.find((v: {site: string; type: string; key: string}) => v.site === 'YouTube' && v.type === 'Teaser') ||
+            videos.find((v: {site: string; key: string}) => v.site === 'YouTube');
+          setTrailerKey(trailer?.key || null);
         } catch {
           setTrailerKey(null);
         }

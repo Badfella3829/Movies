@@ -44,11 +44,21 @@ export function LanguageFilter({ type }: LanguageFilterProps) {
     setMovies([]);
     setPage(1);
 
-    const param = mode === 'original'
-      ? `language=${activeLang}`
-      : `spoken_language=${activeLang}`;
-
-    fetch(`/api/genre?type=${type}&${param}&page=1`)
+    // Direct TMDB API call - no Vercel serverless overhead
+    const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+    const params = new URLSearchParams({
+      api_key: TMDB_KEY || '',
+      sort_by: 'popularity.desc',
+      page: '1',
+    });
+    if (mode === 'original') {
+      params.set('with_original_language', activeLang);
+    } else {
+      params.set('with_spoken_languages', activeLang);
+    }
+    
+    const endpoint = type === 'tv' ? 'discover/tv' : 'discover/movie';
+    fetch(`https://api.themoviedb.org/3/${endpoint}?${params}`)
       .then(r => r.json())
       .then(data => {
         setMovies(data.results || []);
@@ -63,10 +73,20 @@ export function LanguageFilter({ type }: LanguageFilterProps) {
     const next = page + 1;
     setLoadingMore(true);
     try {
-      const param = mode === 'original'
-        ? `language=${activeLang}`
-        : `spoken_language=${activeLang}`;
-      const res = await fetch(`/api/genre?type=${type}&${param}&page=${next}`);
+      // Direct TMDB API call - no Vercel serverless overhead
+      const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+      const params = new URLSearchParams({
+        api_key: TMDB_KEY || '',
+        sort_by: 'popularity.desc',
+        page: String(next),
+      });
+      if (mode === 'original') {
+        params.set('with_original_language', activeLang);
+      } else {
+        params.set('with_spoken_languages', activeLang);
+      }
+      const endpoint = type === 'tv' ? 'discover/tv' : 'discover/movie';
+      const res = await fetch(`https://api.themoviedb.org/3/${endpoint}?${params}`);
       const data = await res.json();
       setMovies(prev => [...prev, ...(data.results || [])]);
       setPage(next);

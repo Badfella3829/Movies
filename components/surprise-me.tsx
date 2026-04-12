@@ -26,48 +26,20 @@ export function SurpriseMe({ variant = 'default' }: SurpriseMeProps) {
     setLoadingType(type);
 
     try {
-      // Get a random page from popular content
+      const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+      // Get a random page from popular content - Direct TMDB API call
       const randomPage = Math.floor(Math.random() * 20) + 1;
-      const endpoint = type === 'movie' 
-        ? `/api/trending?time_window=week&page=${randomPage}`
-        : `/api/trending?time_window=week&media_type=tv&page=${randomPage}`;
-
-      const res = await fetch(endpoint);
+      const res = await fetch(
+        `https://api.themoviedb.org/3/trending/${type}/week?api_key=${TMDB_KEY}&page=${randomPage}`
+      );
       
-      if (!res.ok) {
-        // Fallback to a simple approach
-        const fallbackRes = await fetch(`/api/trending?time_window=week`);
-        const fallbackData = await fallbackRes.json();
-        const filteredResults = fallbackData.results?.filter(
-          (item: { media_type?: string }) => 
-            type === 'movie' ? item.media_type !== 'tv' : item.media_type === 'tv'
-        ) || [];
-        
-        if (filteredResults.length > 0) {
-          const randomIndex = Math.floor(Math.random() * filteredResults.length);
-          const selected = filteredResults[randomIndex];
-          router.push(`/${selected.media_type || type}/${selected.id}`);
-          return;
-        }
-      }
-
       const data = await res.json();
       const results = data.results || [];
-      
-      // Filter by type if needed
-      const filtered = results.filter((item: { media_type?: string }) => 
-        type === 'movie' ? item.media_type !== 'tv' : item.media_type === 'tv'
-      );
 
-      if (filtered.length > 0) {
-        const randomIndex = Math.floor(Math.random() * filtered.length);
-        const selected = filtered[randomIndex];
-        router.push(`/${selected.media_type || type}/${selected.id}`);
-      } else if (results.length > 0) {
-        // Use any result if filter yields nothing
+      if (results.length > 0) {
         const randomIndex = Math.floor(Math.random() * results.length);
         const selected = results[randomIndex];
-        router.push(`/${selected.media_type || type}/${selected.id}`);
+        router.push(`/${type}/${selected.id}`);
       }
     } catch (error) {
       console.error('Error getting random content:', error);
