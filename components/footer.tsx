@@ -73,10 +73,12 @@ const connectLinks = [
 ];
 
 const legalLinks = [
+  { label: 'About Us', href: '/about' },
+  { label: 'Contact Us', href: '/contact' },
   { label: 'Privacy Policy', href: '/privacy-policy' },
+  { label: 'Terms of Service', href: '/terms' },
+  { label: 'Disclaimer', href: '/disclaimer' },
   { label: 'TMDB Attribution', href: 'https://www.themoviedb.org/', external: true },
-  { label: 'Official Website', href: 'https://www.techvyro.in/', external: true },
-  { label: 'Contact Us', href: 'mailto:techvyro@gmail.com', external: true },
 ];
 
 export function Footer() {
@@ -251,14 +253,22 @@ export function Footer() {
           <p className="text-[11px] md:text-xs text-muted-foreground/60 text-center sm:text-left">
             © 2026 TechVyro. All rights reserved.
           </p>
-          <div className="flex items-center gap-4">
-            <Link href="/privacy-policy" className="text-[11px] md:text-xs text-muted-foreground/60 hover:text-foreground transition-colors">
-              Privacy Policy
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <Link href="/about" className="text-[11px] md:text-xs text-muted-foreground/60 hover:text-foreground transition-colors">
+              About
             </Link>
             <span className="text-muted-foreground/30 text-xs">|</span>
-            <a href="https://www.techvyro.in/" target="_blank" rel="noopener noreferrer" className="text-[11px] md:text-xs text-muted-foreground/60 hover:text-foreground transition-colors">
-              techvyro.in
-            </a>
+            <Link href="/privacy-policy" className="text-[11px] md:text-xs text-muted-foreground/60 hover:text-foreground transition-colors">
+              Privacy
+            </Link>
+            <span className="text-muted-foreground/30 text-xs">|</span>
+            <Link href="/terms" className="text-[11px] md:text-xs text-muted-foreground/60 hover:text-foreground transition-colors">
+              Terms
+            </Link>
+            <span className="text-muted-foreground/30 text-xs">|</span>
+            <Link href="/contact" className="text-[11px] md:text-xs text-muted-foreground/60 hover:text-foreground transition-colors">
+              Contact
+            </Link>
           </div>
         </div>
 
