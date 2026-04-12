@@ -1,10 +1,12 @@
+import { unstable_cache } from 'next/cache';
+
 const TMDB_API_KEY = process.env.TMDB_API_KEY || '';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
 
-// In-memory cache for API responses (survives within the process lifetime)
-const cache = new Map<string, { data: unknown; timestamp: number }>();
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+// Cache duration: 4 hours (14400 seconds)
+// All users share the same cached data - only 1 API call per 4 hours
+const CACHE_DURATION = 14400;
 
 export interface Movie {
   id: number;
@@ -77,29 +79,44 @@ export function getImageUrl(path: string | null, size: 'w200' | 'w300' | 'w500' 
   return `${TMDB_IMAGE_BASE}/${size}${path}`;
 }
 
-export async function fetchFromTMDB<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
+// Internal fetch function (called by cached wrapper)
+async function _fetchFromTMDB<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
   if (!TMDB_API_KEY) {
     throw new Error('TMDB_API_KEY environment variable is not set. Please add it in project settings.');
   }
 
   const searchParams = new URLSearchParams({ api_key: TMDB_API_KEY, ...params });
-  const cacheKey = `${endpoint}?${searchParams.toString()}`;
   const url = `${TMDB_BASE_URL}${endpoint}?${searchParams}`;
 
-  // In-memory cache check
-  const mem = cache.get(cacheKey);
-  if (mem && Date.now() - mem.timestamp < CACHE_TTL) {
-    return mem.data as T;
-  }
-
-  const response = await fetch(url, { next: { revalidate: 14400 } }); // 4h Next.js data cache
+  const response = await fetch(url, { 
+    next: { revalidate: CACHE_DURATION },
+    headers: { 'Accept': 'application/json' }
+  });
+  
   if (!response.ok) {
     if (response.status === 401) throw new Error('TMDB API key is invalid. Please check your TMDB_API_KEY in project settings.');
     throw new Error(`TMDB API error: ${response.status}`);
   }
-  const data = await response.json();
-  cache.set(cacheKey, { data, timestamp: Date.now() });
-  return data;
+  
+  return response.json();
+}
+
+// Create a cached version of API calls using unstable_cache
+// This ensures all users share the same cached response for 4 hours
+export async function fetchFromTMDB<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
+  // Create unique cache key from endpoint and params
+  const cacheKey = `tmdb-${endpoint}-${JSON.stringify(params)}`.replace(/[^a-zA-Z0-9-]/g, '_');
+  
+  const cachedFetch = unstable_cache(
+    async () => _fetchFromTMDB<T>(endpoint, params),
+    [cacheKey],
+    {
+      revalidate: CACHE_DURATION, // 4 hours
+      tags: ['tmdb', `tmdb-${endpoint.split('/')[1] || 'general'}`],
+    }
+  );
+  
+  return cachedFetch();
 }
 
 export async function getTrending(timeWindow: 'day' | 'week' = 'week'): Promise<MovieResponse> {
